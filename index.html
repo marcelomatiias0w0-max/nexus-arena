@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NEXUS ARENA</title>
+<style>
+*{box-sizing:border-box}body{margin:0;overflow:hidden;background:#08111b;color:#eaf7ff;font-family:Arial}canvas{display:block}
+#menu{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse,#18384d,#070d15 70%);z-index:3}
+.panel{width:min(540px,92vw);padding:28px;background:#091521ee;border:1px solid #286078;border-radius:12px;box-shadow:0 0 50px #00cfff22}
+h1{margin:0;color:#62eaff;letter-spacing:5px;font-size:40px}p{color:#9db8c9;line-height:1.6;font-size:13px}
+button,select{padding:12px;border-radius:6px;border:1px solid #31566c;background:#10283a;color:white;font-weight:bold}
+button{cursor:pointer;background:#00b5cf;color:#00131a;width:100%;margin-top:12px}
+#hud{display:none;position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}
+.top{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between}
+.box{background:#07121ddd;border:1px solid #31566c;border-radius:6px;padding:10px 14px}
+.cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:24px;color:white}
+.bottom{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px}
+#tip{position:absolute;bottom:8px;left:12px;color:#c1d4df;font-size:11px}
+</style></head><body>
+<div id="menu"><div class="panel"><h1>NEXUS ARENA</h1><p>FPS DE NAVEGADOR · PROTÓTIPO</p>
+<select id="map" style="width:100%"><option value="city">NEON DISTRICT</option><option value="desert">DUST基地</option></select>
+<select id="weapon" style="width:100%;margin-top:8px"><option value="rifle">VX-7 · RIFLE</option><option value="smg">K-9 · SMG</option><option value="sniper">SPECTRE · SNIPER</option></select>
+<button id="start">JOGAR</button>
+<p>WASD mover · Mouse mirar/atirar · Espaço pular · Shift correr · R recarregar · 1/2/3 trocar arma · ESC pausar.<br>Versão inicial: bots locais, sem multiplayer online.</p></div></div>
+<div id="hud"><div class="top"><div class="box">NEXUS // <span id="mapname">NEON DISTRICT</span></div><div class="box">ELIMS: <b id="kills">0</b></div></div>
+<div class="cross">+</div><div class="bottom"><div class="box" id="ammo">30 / 90</div><div class="box" id="health">VIDA 100</div><div class="box" id="weaponname">VX-7</div></div><div id="tip">WASD · MOUSE · SPACE · SHIFT · R</div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import {PointerLockControls} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
+const $=id=>document.getElementById(id),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.1,150);
+const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
+const controls=new PointerLockControls(camera,document.body),clock=new THREE.Clock();scene.add(new THREE.HemisphereLight(0xc4edff,0x26313b,2));
+const light=new THREE.DirectionalLight(0xffffff,1.5);light.position.set(8,18,5);scene.add(light);
+const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.85}),wallMat=mat(0x294357);
+let obstacles=[],bots=[],kills=0,hp=100,ammo=30,reserve=90,weapon='rifle',last=0,playing=false,vy=0,grounded=true;
+const settings={rifle:{name:'VX-7',mag:30,rate:130,damage:34,spread:.012},smg:{name:'K-9',mag:36,rate:75,damage:18,spread:.035},sniper:{name:'SPECTRE',mag:5,rate:700,damage:100,spread:.002}};
+function block(x,y,z,w,h,d,m=wallMat){let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);scene.add(o);obstacles.push(new THREE.Box3().setFromObject(o));}
+function build(){while(scene.children.length>2)scene.remove(scene.children[scene.children.length-1]);obstacles=[];bots=[];
+let desert=$('map').value==='desert';scene.background=new THREE.Color(desert?0xb48a5d:0x101c2b);scene.fog=new THREE.Fog(desert?0xb48a5d:0x101c2b,32,95);
+let floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),mat(desert?0x80603c:0x172b3a));floor.rotation.x=-Math.PI/2;scene.add(floor);
+let edge=desert?mat(0x75502e):wallMat;block(0,3,-27,56,6,1,edge);block(0,3,27,56,6,1,edge);block(-28,3,0,1,6,54,edge);block(28,3,0,1,6,54,edge);
+for(let i=0;i<15;i++){let x=(Math.random()-.5)*45,z=(Math.random()-.5)*43;if(Math.abs(x)<5&&Math.abs(z)<6)continue;let h=2+Math.random()*4;block(x,h/2,z,2+Math.random()*3,h,2+Math.random()*3,desert?mat(0x795331):mat([0x345064,0x24505d,0x344052][i%3]));}
+camera.position.set(0,1.7,12);camera.rotation.set(0,0,0);for(let i=0;i<6;i++)spawn();
+}
+function spawn(){let g=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(.8,1.25,.55),mat([0xc65353,0xd2a34d,0x8b70c9,0x4ca88d][Math.floor(Math.random()*4)])),head=new THREE.Mesh(new THREE.BoxGeometry(.48,.48,.48),mat(0xd7b9a1));body.position.y=.9;head.position.y=1.78;g.add(body,head);g.position.set((Math.random()-.5)*42,0,-Math.random()*35);scene.add(g);bots.push({g,hp:100,next:0});}
+function setWeapon(w){weapon=w;ammo=settings[w].mag;reserve=settings[w].mag*3;$('weaponname').textContent=settings[w].name;hud()}
+function hud(){$('ammo').textContent=ammo+' / '+reserve;$('health').textContent='VIDA '+hp;$('kills').textContent=kills}
+function reload(){if(ammo===settings[weapon].mag||reserve<=0)return;let n=Math.min(settings[weapon].mag-ammo,reserve);setTimeout(()=>{ammo+=n;reserve-=n;hud()},950)}
+function shoot(){if(!playing||!controls.isLocked)return;let now=performance.now();if(now-last<settings[weapon].rate)return;last=now;if(!ammo){reload();return}ammo--;hud();let d=new THREE.Vector3();camera.getWorldDirection(d);d.x+=(Math.random()-.5)*settings[weapon].spread;d.y+=(Math.random()-.5)*settings[weapon].spread;let ray=new THREE.Raycaster(camera.position,d,0,85),hits=ray.intersectObjects(bots.flatMap(b=>b.g.children));if(hits.length){let target=hits[0].object,b=bots.find(x=>x.g.children.includes(target));if(b){b.hp-=settings[weapon].damage;if(b.hp<=0){scene.remove(b.g);bots=bots.filter(x=>x!==b);kills++;spawn();hud()}}}}
+const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyR')reload();if(e.code==='Digit1')setWeapon('rifle');if(e.code==='Digit2')setWeapon('smg');if(e.code==='Digit3')setWeapon('sniper')});addEventListener('keyup',e=>keys[e.code]=false);addEventListener('mousedown',e=>{if(e.button===0)shoot()});
+function move(dt){if(!controls.isLocked)return;let old=camera.position.clone(),speed=keys.ShiftLeft?10:6.3,f=Number(keys.KeyW)-Number(keys.KeyS),s=Number(keys.KeyD)-Number(keys.KeyA);if(f||s){let v=new THREE.Vector3(s,0,-f).normalize().multiplyScalar(speed*dt).applyQuaternion(camera.quaternion);camera.position.x+=v.x;camera.position.z+=v.z}
+if(keys.Space&&grounded){vy=7;grounded=false}vy-=18*dt;camera.position.y+=vy*dt;if(camera.position.y<1.7){camera.position.y=1.7;vy=0;grounded=true}
+let p=new THREE.Vector3(camera.position.x,0,camera.position.z);for(let b of obstacles)if(b.containsPoint(p)){camera.position.x=old.x;camera.position.z=old.z;break}camera.position.x=THREE.MathUtils.clamp(camera.position.x,-26,26);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-25,25)}
+function ai(dt,t){for(let b of bots){let dx=camera.position.x-b.g.position.x,dz=camera.position.z-b.g.position.z,dist=Math.hypot(dx,dz);b.g.lookAt(camera.position.x,0,camera.position.z);if(dist>4){b.g.position.x+=dx/dist*dt*1.15;b.g.position.z+=dz/dist*dt*1.15}if(dist<17&&t>b.next){b.next=t+1.8;if(Math.random()<.22){hp=Math.max(0,hp-5);if(!hp){hp=100;camera.position.set(0,1.7,12)}hud()}}}}
+function start(){playing=true;kills=0;hp=100;build();setWeapon($('weapon').value);$('mapname').textContent=$('map').value==='city'?'NEON DISTRICT':'DUST BASE';$('menu').style.display='none';$('hud').style.display='block';controls.lock()}
+$('start').onclick=start;controls.addEventListener('unlock',()=>{if(playing){$('menu').style.display='grid';$('hud').style.display='none'}});
+function loop(){requestAnimationFrame(loop);let dt=Math.min(clock.getDelta(),.04);if(playing){move(dt);ai(dt,clock.elapsedTime)}renderer.render(scene,camera)}loop();
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+</script></body></html>
