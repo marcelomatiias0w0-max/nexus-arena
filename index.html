@@ -1,57 +1,231 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NEXUS ARENA</title>
 <style>
-*{box-sizing:border-box}body{margin:0;overflow:hidden;background:#08111b;color:#eaf7ff;font-family:Arial}canvas{display:block}
-#menu{position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse,#18384d,#070d15 70%);z-index:3}
-.panel{width:min(540px,92vw);padding:28px;background:#091521ee;border:1px solid #286078;border-radius:12px;box-shadow:0 0 50px #00cfff22}
-h1{margin:0;color:#62eaff;letter-spacing:5px;font-size:40px}p{color:#9db8c9;line-height:1.6;font-size:13px}
-button,select{padding:12px;border-radius:6px;border:1px solid #31566c;background:#10283a;color:white;font-weight:bold}
-button{cursor:pointer;background:#00b5cf;color:#00131a;width:100%;margin-top:12px}
-#hud{display:none;position:fixed;inset:0;pointer-events:none;text-shadow:0 2px 4px #000}
-.top{position:absolute;top:15px;left:15px;right:15px;display:flex;justify-content:space-between}
-.box{background:#07121ddd;border:1px solid #31566c;border-radius:6px;padding:10px 14px}
-.cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:24px;color:white}
-.bottom{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px}
-#tip{position:absolute;bottom:8px;left:12px;color:#c1d4df;font-size:11px}
-</style></head><body>
-<div id="menu"><div class="panel"><h1>NEXUS ARENA</h1><p>FPS DE NAVEGADOR · PROTÓTIPO</p>
-<select id="map" style="width:100%"><option value="city">NEON DISTRICT</option><option value="desert">DUST基地</option></select>
-<select id="weapon" style="width:100%;margin-top:8px"><option value="rifle">VX-7 · RIFLE</option><option value="smg">K-9 · SMG</option><option value="sniper">SPECTRE · SNIPER</option></select>
-<button id="start">JOGAR</button>
-<p>WASD mover · Mouse mirar/atirar · Espaço pular · Shift correr · R recarregar · 1/2/3 trocar arma · ESC pausar.<br>Versão inicial: bots locais, sem multiplayer online.</p></div></div>
-<div id="hud"><div class="top"><div class="box">NEXUS // <span id="mapname">NEON DISTRICT</span></div><div class="box">ELIMS: <b id="kills">0</b></div></div>
-<div class="cross">+</div><div class="bottom"><div class="box" id="ammo">30 / 90</div><div class="box" id="health">VIDA 100</div><div class="box" id="weaponname">VX-7</div></div><div id="tip">WASD · MOUSE · SPACE · SHIFT · R</div></div>
+:root{--cyan:#35e6ff;--blue:#0b9bbd;--panel:rgba(7,15,27,.92);--line:rgba(72,213,245,.3)}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07111d;color:#eaf8ff;font-family:Inter,Arial,sans-serif}
+canvas{display:block}
+#menu{position:fixed;inset:0;z-index:5;display:grid;place-items:center;padding:20px;background:radial-gradient(ellipse at 50% 42%,#123b50 0,#0a1c2b 42%,#050a12 100%)}
+.panel{width:min(760px,96vw);padding:clamp(22px,4vw,42px);border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,rgba(10,27,43,.97),rgba(4,12,22,.96));box-shadow:0 25px 90px #0009,0 0 45px #00d9ff18;position:relative;overflow:hidden}
+.panel:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,transparent,var(--cyan),#8b7bff,transparent)}
+.kicker{font-size:11px;letter-spacing:4px;color:#78dff0;font-weight:800}
+h1{margin:10px 0 4px;font-size:clamp(42px,8vw,70px);letter-spacing:5px;line-height:1;color:#e9fbff;text-shadow:0 0 24px #26dfff55}
+h1 span{color:var(--cyan)}
+.subtitle{margin:12px 0 28px;color:#9db9ca;letter-spacing:2px;font-size:12px}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:block;color:#91b8c9;font-size:11px;letter-spacing:1.5px;margin:0 0 7px}
+select,button{font:inherit}
+select{width:100%;padding:14px;background:#0c2031;color:#eaf8ff;border:1px solid #28536b;border-radius:9px;outline:none}
+select:focus{border-color:var(--cyan)}
+#start{width:100%;margin-top:18px;padding:16px;border:0;border-radius:9px;background:linear-gradient(90deg,#00b8d2,#39e4ee);color:#03121a;font-weight:900;letter-spacing:2px;cursor:pointer;box-shadow:0 8px 25px #00cce533;transition:.18s}
+#start:hover{filter:brightness(1.12);transform:translateY(-1px)}
+#start:active{transform:translateY(1px)}
+.controls{margin-top:18px;padding:14px;border:1px solid #1e3d52;border-radius:10px;background:#071522;color:#9bb7c8;font-size:12px;line-height:1.8}
+.controls b{color:#d9f8ff}
+.note{margin-top:12px;color:#68899c;font-size:11px;line-height:1.6}
+#hud{display:none;position:fixed;inset:0;z-index:2;pointer-events:none;text-shadow:0 2px 5px #000}
+.hudtop{position:absolute;top:16px;left:16px;right:16px;display:flex;justify-content:space-between;gap:10px}
+.hudbox{padding:11px 15px;border:1px solid #5edff055;border-radius:8px;background:#061321d9;color:#eaffff;font-size:12px;letter-spacing:1px}
+#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:25px;color:#dffaff}
+.hudbottom{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:9px;white-space:nowrap}
+#tip{position:absolute;left:16px;bottom:14px;color:#a8c7d5;font-size:11px}
+#notice{position:fixed;z-index:6;left:50%;top:18px;transform:translateX(-50%);padding:10px 16px;border:1px solid #49d9ef66;border-radius:8px;background:#061522eF;color:#dffaff;font-size:12px;display:none}
+@media(max-width:560px){.menu-grid{grid-template-columns:1fr}.panel{padding:22px}.hudtop{top:8px;left:8px;right:8px}.hudbottom{bottom:10px}.hudbox{padding:8px;font-size:10px}#tip{display:none}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="menu">
+ <main class="panel">
+  <div class="kicker">NEXUS NETWORK // COMBAT SIMULATION</div>
+  <h1>NEXUS <span>ARENA</span></h1>
+  <div class="subtitle">BROWSER FPS · EARLY ACCESS</div>
+  <div class="menu-grid">
+   <div><label for="map">MAPA</label><select id="map"><option value="city">NEON DISTRICT</option><option value="desert">DUST BASE</option></select></div>
+   <div><label for="weapon">EQUIPAMENTO</label><select id="weapon"><option value="rifle">VX-7 · RIFLE DE ENERGIA</option><option value="smg">K-9 · PULSO RÁPIDO</option><option value="sniper">SPECTRE · PRECISÃO</option></select></div>
+  </div>
+  <button id="start">ENTRAR NA ARENA</button>
+  <div class="controls"><b>CONTROLES</b><br>W A S D — mover &nbsp; | &nbsp; MOUSE — mirar<br>CLIQUE — disparar &nbsp; | &nbsp; ESPAÇO — pular<br>SHIFT — correr &nbsp; | &nbsp; R — recarregar &nbsp; | &nbsp; 1 / 2 / 3 — equipamento<br>ESC — pausar</div>
+  <div class="note">Protótipo local para navegador. Esta versão possui adversários controlados pelo jogo; partidas online com amigos exigem um servidor multiplayer.</div>
+ </main>
+</div>
+<div id="notice"></div>
+<div id="hud">
+ <div class="hudtop"><div class="hudbox">NEXUS // <span id="mapname">NEON DISTRICT</span></div><div class="hudbox">PONTOS: <b id="kills">0</b></div></div>
+ <div id="cross">+</div>
+ <div class="hudbottom"><div class="hudbox" id="ammo">30 / 90</div><div class="hudbox" id="health">ENERGIA 100</div><div class="hudbox" id="weaponname">VX-7</div></div>
+ <div id="tip">WASD · MOUSE · CLIQUE · SPACE · SHIFT · R</div>
+</div>
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-import {PointerLockControls} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/PointerLockControls.js';
-const $=id=>document.getElementById(id),scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.1,150);
-const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);document.body.appendChild(renderer.domElement);
-const controls=new PointerLockControls(camera,document.body),clock=new THREE.Clock();scene.add(new THREE.HemisphereLight(0xc4edff,0x26313b,2));
-const light=new THREE.DirectionalLight(0xffffff,1.5);light.position.set(8,18,5);scene.add(light);
-const mat=c=>new THREE.MeshStandardMaterial({color:c,roughness:.85}),wallMat=mat(0x294357);
-let obstacles=[],bots=[],kills=0,hp=100,ammo=30,reserve=90,weapon='rifle',last=0,playing=false,vy=0,grounded=true;
-const settings={rifle:{name:'VX-7',mag:30,rate:130,damage:34,spread:.012},smg:{name:'K-9',mag:36,rate:75,damage:18,spread:.035},sniper:{name:'SPECTRE',mag:5,rate:700,damage:100,spread:.002}};
-function block(x,y,z,w,h,d,m=wallMat){let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);scene.add(o);obstacles.push(new THREE.Box3().setFromObject(o));}
-function build(){while(scene.children.length>2)scene.remove(scene.children[scene.children.length-1]);obstacles=[];bots=[];
-let desert=$('map').value==='desert';scene.background=new THREE.Color(desert?0xb48a5d:0x101c2b);scene.fog=new THREE.Fog(desert?0xb48a5d:0x101c2b,32,95);
-let floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),mat(desert?0x80603c:0x172b3a));floor.rotation.x=-Math.PI/2;scene.add(floor);
-let edge=desert?mat(0x75502e):wallMat;block(0,3,-27,56,6,1,edge);block(0,3,27,56,6,1,edge);block(-28,3,0,1,6,54,edge);block(28,3,0,1,6,54,edge);
-for(let i=0;i<15;i++){let x=(Math.random()-.5)*45,z=(Math.random()-.5)*43;if(Math.abs(x)<5&&Math.abs(z)<6)continue;let h=2+Math.random()*4;block(x,h/2,z,2+Math.random()*3,h,2+Math.random()*3,desert?mat(0x795331):mat([0x345064,0x24505d,0x344052][i%3]));}
-camera.position.set(0,1.7,12);camera.rotation.set(0,0,0);for(let i=0;i<6;i++)spawn();
+import * as THREE from 'three';
+import {PointerLockControls} from 'three/addons/controls/PointerLockControls.js';
+
+const $=id=>document.getElementById(id);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(78,innerWidth/innerHeight,.1,150);
+const renderer=new THREE.WebGLRenderer({antialias:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
+renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const controls=new PointerLockControls(camera,renderer.domElement);
+const clock=new THREE.Clock();
+scene.add(new THREE.HemisphereLight(0xc4edff,0x26313b,2));
+const sun=new THREE.DirectionalLight(0xffffff,1.4);sun.position.set(8,18,5);scene.add(sun);
+
+const material=c=>new THREE.MeshStandardMaterial({color:c,roughness:.82});
+let obstacles=[],bots=[],kills=0,hp=100,ammo=30,reserve=90,weapon='rifle',lastShot=0,playing=false,vy=0,grounded=true,reloading=false;
+const settings={
+ rifle:{name:'VX-7',mag:30,rate:145,damage:34,spread:.012},
+ smg:{name:'K-9',mag:36,rate:85,damage:18,spread:.035},
+ sniper:{name:'SPECTRE',mag:5,rate:650,damage:100,spread:.002}
+};
+function block(x,y,z,w,h,d,mat){
+ const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);
+ mesh.position.set(x,y,z);scene.add(mesh);
+ obstacles.push(new THREE.Box3().setFromObject(mesh));
 }
-function spawn(){let g=new THREE.Group(),body=new THREE.Mesh(new THREE.BoxGeometry(.8,1.25,.55),mat([0xc65353,0xd2a34d,0x8b70c9,0x4ca88d][Math.floor(Math.random()*4)])),head=new THREE.Mesh(new THREE.BoxGeometry(.48,.48,.48),mat(0xd7b9a1));body.position.y=.9;head.position.y=1.78;g.add(body,head);g.position.set((Math.random()-.5)*42,0,-Math.random()*35);scene.add(g);bots.push({g,hp:100,next:0});}
-function setWeapon(w){weapon=w;ammo=settings[w].mag;reserve=settings[w].mag*3;$('weaponname').textContent=settings[w].name;hud()}
-function hud(){$('ammo').textContent=ammo+' / '+reserve;$('health').textContent='VIDA '+hp;$('kills').textContent=kills}
-function reload(){if(ammo===settings[weapon].mag||reserve<=0)return;let n=Math.min(settings[weapon].mag-ammo,reserve);setTimeout(()=>{ammo+=n;reserve-=n;hud()},950)}
-function shoot(){if(!playing||!controls.isLocked)return;let now=performance.now();if(now-last<settings[weapon].rate)return;last=now;if(!ammo){reload();return}ammo--;hud();let d=new THREE.Vector3();camera.getWorldDirection(d);d.x+=(Math.random()-.5)*settings[weapon].spread;d.y+=(Math.random()-.5)*settings[weapon].spread;let ray=new THREE.Raycaster(camera.position,d,0,85),hits=ray.intersectObjects(bots.flatMap(b=>b.g.children));if(hits.length){let target=hits[0].object,b=bots.find(x=>x.g.children.includes(target));if(b){b.hp-=settings[weapon].damage;if(b.hp<=0){scene.remove(b.g);bots=bots.filter(x=>x!==b);kills++;spawn();hud()}}}}
-const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='KeyR')reload();if(e.code==='Digit1')setWeapon('rifle');if(e.code==='Digit2')setWeapon('smg');if(e.code==='Digit3')setWeapon('sniper')});addEventListener('keyup',e=>keys[e.code]=false);addEventListener('mousedown',e=>{if(e.button===0)shoot()});
-function move(dt){if(!controls.isLocked)return;let old=camera.position.clone(),speed=keys.ShiftLeft?10:6.3,f=Number(keys.KeyW)-Number(keys.KeyS),s=Number(keys.KeyD)-Number(keys.KeyA);if(f||s){let v=new THREE.Vector3(s,0,-f).normalize().multiplyScalar(speed*dt).applyQuaternion(camera.quaternion);camera.position.x+=v.x;camera.position.z+=v.z}
-if(keys.Space&&grounded){vy=7;grounded=false}vy-=18*dt;camera.position.y+=vy*dt;if(camera.position.y<1.7){camera.position.y=1.7;vy=0;grounded=true}
-let p=new THREE.Vector3(camera.position.x,0,camera.position.z);for(let b of obstacles)if(b.containsPoint(p)){camera.position.x=old.x;camera.position.z=old.z;break}camera.position.x=THREE.MathUtils.clamp(camera.position.x,-26,26);camera.position.z=THREE.MathUtils.clamp(camera.position.z,-25,25)}
-function ai(dt,t){for(let b of bots){let dx=camera.position.x-b.g.position.x,dz=camera.position.z-b.g.position.z,dist=Math.hypot(dx,dz);b.g.lookAt(camera.position.x,0,camera.position.z);if(dist>4){b.g.position.x+=dx/dist*dt*1.15;b.g.position.z+=dz/dist*dt*1.15}if(dist<17&&t>b.next){b.next=t+1.8;if(Math.random()<.22){hp=Math.max(0,hp-5);if(!hp){hp=100;camera.position.set(0,1.7,12)}hud()}}}}
-function start(){playing=true;kills=0;hp=100;build();setWeapon($('weapon').value);$('mapname').textContent=$('map').value==='city'?'NEON DISTRICT':'DUST BASE';$('menu').style.display='none';$('hud').style.display='block';controls.lock()}
-$('start').onclick=start;controls.addEventListener('unlock',()=>{if(playing){$('menu').style.display='grid';$('hud').style.display='none'}});
-function loop(){requestAnimationFrame(loop);let dt=Math.min(clock.getDelta(),.04);if(playing){move(dt);ai(dt,clock.elapsedTime)}renderer.render(scene,camera)}loop();
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-</script></body></html>
+function clearArena(){
+ for(let i=scene.children.length-1;i>=0;i--){
+  const obj=scene.children[i];
+  if(obj!==sun && !(obj.isHemisphereLight))scene.remove(obj);
+ }
+ obstacles=[];bots=[];
+}
+function buildArena(){
+ clearArena();
+ const desert=$('map').value==='desert';
+ scene.background=new THREE.Color(desert?0xb48a5d:0x101c2b);
+ scene.fog=new THREE.Fog(desert?0xb48a5d:0x101c2b,32,95);
+ const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),material(desert?0x80603c:0x172b3a));
+ floor.rotation.x=-Math.PI/2;scene.add(floor);
+ const edge=material(desert?0x75502e:0x294357);
+ block(0,3,-27,56,6,1,edge);block(0,3,27,56,6,1,edge);
+ block(-28,3,0,1,6,54,edge);block(28,3,0,1,6,54,edge);
+ for(let i=0;i<16;i++){
+  const x=(Math.random()-.5)*45,z=(Math.random()-.5)*43;
+  if(Math.abs(x)<5&&Math.abs(z)<6)continue;
+  const h=2+Math.random()*4;
+  const colors=desert?[0x795331,0x90653d,0x624b37]:[0x345064,0x24505d,0x344052];
+  block(x,h/2,z,2+Math.random()*3,h,2+Math.random()*3,material(colors[i%colors.length]));
+ }
+ camera.position.set(0,1.7,12);camera.rotation.set(0,0,0);
+ for(let i=0;i<6;i++)spawnBot();
+}
+function spawnBot(){
+ const group=new THREE.Group();
+ const body=new THREE.Mesh(new THREE.BoxGeometry(.8,1.2,.55),material([0x29b8c9,0x9a6cff,0xe2a34a,0x55bd87][Math.floor(Math.random()*4)]));
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.27,10,8),material(0xd5e8ed));
+ body.position.y=.85;head.position.y=1.62;group.add(body,head);
+ group.position.set((Math.random()-.5)*42,0,-Math.random()*35);
+ scene.add(group);bots.push({group,hp:100,next:0});
+}
+function updateHud(){
+ $('ammo').textContent=ammo+' / '+reserve;
+ $('health').textContent='ENERGIA '+hp;
+ $('kills').textContent=kills;
+ $('weaponname').textContent=settings[weapon].name;
+}
+function setWeapon(next){
+ weapon=next;ammo=settings[next].mag;reserve=settings[next].mag*3;reloading=false;updateHud();
+}
+function reload(){
+ if(reloading||ammo===settings[weapon].mag||reserve<=0)return;
+ reloading=true;
+ const count=Math.min(settings[weapon].mag-ammo,reserve);
+ $('notice').textContent='RECARREGANDO...';$('notice').style.display='block';
+ setTimeout(()=>{
+  if(!playing){reloading=false;$('notice').style.display='none';return;}
+  ammo+=count;reserve-=count;reloading=false;updateHud();$('notice').style.display='none';
+ },900);
+}
+function shoot(){
+ if(!playing||!controls.isLocked||reloading)return;
+ const now=performance.now(),cfg=settings[weapon];
+ if(now-lastShot<cfg.rate)return;lastShot=now;
+ if(ammo<=0){reload();return;}
+ ammo--;updateHud();
+ const direction=new THREE.Vector3();camera.getWorldDirection(direction);
+ direction.x+=(Math.random()-.5)*cfg.spread;direction.y+=(Math.random()-.5)*cfg.spread;
+ const ray=new THREE.Raycaster(camera.position,direction.normalize(),0,85);
+ const hits=ray.intersectObjects(bots.flatMap(b=>b.group.children),false);
+ if(hits.length){
+  const target=hits[0].object;
+  const bot=bots.find(b=>b.group.children.includes(target));
+  if(bot){
+   bot.hp-=cfg.damage;
+   if(bot.hp<=0){
+    scene.remove(bot.group);bots=bots.filter(b=>b!==bot);kills++;spawnBot();updateHud();
+   }
+  }
+ }
+}
+const keys={};
+addEventListener('keydown',e=>{
+ keys[e.code]=true;
+ if(e.code==='KeyR')reload();
+ if(e.code==='Digit1')setWeapon('rifle');
+ if(e.code==='Digit2')setWeapon('smg');
+ if(e.code==='Digit3')setWeapon('sniper');
+});
+addEventListener('keyup',e=>keys[e.code]=false);
+addEventListener('mousedown',e=>{if(e.button===0)shoot();});
+function move(dt){
+ if(!controls.isLocked)return;
+ const old=camera.position.clone(),speed=keys.ShiftLeft?10:6.3;
+ const forward=Number(keys.KeyW)-Number(keys.KeyS),side=Number(keys.KeyD)-Number(keys.KeyA);
+ if(forward||side){
+  const v=new THREE.Vector3(side,0,-forward).normalize().multiplyScalar(speed*dt).applyQuaternion(camera.quaternion);
+  camera.position.x+=v.x;camera.position.z+=v.z;
+ }
+ if(keys.Space&&grounded){vy=7;grounded=false;}
+ vy-=18*dt;camera.position.y+=vy*dt;
+ if(camera.position.y<1.7){camera.position.y=1.7;vy=0;grounded=true;}
+ const p=new THREE.Vector3(camera.position.x,0,camera.position.z);
+ for(const obstacle of obstacles){if(obstacle.containsPoint(p)){camera.position.x=old.x;camera.position.z=old.z;break;}}
+ camera.position.x=THREE.MathUtils.clamp(camera.position.x,-26,26);
+ camera.position.z=THREE.MathUtils.clamp(camera.position.z,-25,25);
+}
+function updateBots(dt,time){
+ for(const bot of bots){
+  const dx=camera.position.x-bot.group.position.x,dz=camera.position.z-bot.group.position.z;
+  const dist=Math.hypot(dx,dz);
+  bot.group.lookAt(camera.position.x,0,camera.position.z);
+  if(dist>4){bot.group.position.x+=dx/dist*dt*1.1;bot.group.position.z+=dz/dist*dt*1.1;}
+  if(dist<17&&time>bot.next){
+   bot.next=time+1.8;
+   if(Math.random()<.2){hp=Math.max(0,hp-5);if(hp===0){hp=100;camera.position.set(0,1.7,12);}updateHud();}
+  }
+ }
+}
+function startGame(){
+ if(!renderer.capabilities.isWebGL2 && !renderer.capabilities.isWebGL1){
+  $('notice').textContent='Este navegador não conseguiu iniciar o WebGL.';$('notice').style.display='block';return;
+ }
+ playing=true;kills=0;hp=100;buildArena();setWeapon($('weapon').value);
+ $('mapname').textContent=$('map').value==='city'?'NEON DISTRICT':'DUST BASE';
+ $('menu').style.display='none';$('hud').style.display='block';controls.lock();
+}
+$('start').addEventListener('click',startGame);
+controls.addEventListener('unlock',()=>{
+ if(playing){$('menu').style.display='grid';$('hud').style.display='none';}
+});
+function animate(){
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),.04);
+ if(playing){move(dt);updateBots(dt,clock.elapsedTime);}
+ renderer.render(scene,camera);
+}
+animate();
+addEventListener('resize',()=>{
+ camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>
